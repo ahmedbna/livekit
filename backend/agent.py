@@ -75,6 +75,22 @@ async def entrypoint(ctx: JobContext):
         metrics.log_metrics(agent_metrics)
         usage_collector.collect(agent_metrics)
 
+    @agent.on("user_started_speaking")
+    def on_user_started_speaking(event_data=None):
+        logger.info("BNA started speaking")
+
+    @agent.on("user_stopped_speaking")
+    def on_user_stopped_speaking(event_data=None):
+        logger.info("BNA stopped speaking")
+
+    @agent.on("agent_started_speaking")
+    def on_agent_started_speaking(event_data=None):
+        logger.info("Agent started speaking")
+
+    @agent.on("agent_stopped_speaking")
+    def on_agent_stopped_speaking(event_data=None):
+        logger.info("Agent stopped speaking")
+
     agent.start(ctx.room, participant)
 
     # The agent should be polite and greet the user when it joins :)
