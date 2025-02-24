@@ -26,9 +26,8 @@ async def entrypoint(ctx: JobContext):
     initial_ctx = llm.ChatContext().append(
         role="system",
         text=(
-            "You are a voice assistant created by LiveKit. Your interface with users will be voice. "
+            "You are a voice assistant called BNA. Your interface with users will be voice. "
             "You should use short and concise responses, and avoiding usage of unpronouncable punctuation. "
-            "You were created as a demo to showcase the capabilities of LiveKit's agents framework."
         ),
     )
 
@@ -45,15 +44,28 @@ async def entrypoint(ctx: JobContext):
     # https://docs.livekit.io/agents/plugins
     agent = VoicePipelineAgent(
         vad=ctx.proc.userdata["vad"],
-        stt=deepgram.STT(),
+        # flexibility to use any models
+        stt=deepgram.STT(model="nova-2-general"),
+        # flexibility to use any models
         llm=openai.LLM(model="gpt-4o-mini"),
         tts=cartesia.TTS(),
         turn_detector=turn_detector.EOUModel(),
-        # minimum delay for endpointing, used when turn detector believes the user is done with their turn
+        # minimal silence duration to consider end of turn, minimum delay for endpointing, used when turn detector believes the user is done with their turn
         min_endpointing_delay=0.5,
         # maximum delay for endpointing, used when turn detector does not believe the user is done with their turn
         max_endpointing_delay=5.0,
+        # intial ChatContext with system prompt
         chat_ctx=initial_ctx,
+        # whether the agent can be interrupted
+        allow_interruptions=True,
+        # Minimum duration of speech to consider for interruption.
+        # interrupt_speech_duration=0.5,
+        # Minimum number of words to consider for interruption. Defaults to 0 as this may increase the latency depending on the STT.
+        interrupt_min_words=0, 
+        # callback to run before LLM is called, can be used to modify chat context
+        # before_llm_cb=None,
+        # callback to run before TTS is called, can be used to customize pronounciation
+        # before_tts_cb=None,  
     )
 
     usage_collector = metrics.UsageCollector()
@@ -66,7 +78,7 @@ async def entrypoint(ctx: JobContext):
     agent.start(ctx.room, participant)
 
     # The agent should be polite and greet the user when it joins :)
-    await agent.say("Hey, how can I help you today?", allow_interruptions=True)
+    await agent.say("Hey, how can I help you today?", allow_interruptions=False)
 
 
 if __name__ == "__main__":
