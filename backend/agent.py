@@ -21,6 +21,13 @@ logger = logging.getLogger("voice-agent")
 def prewarm(proc: JobProcess):
     proc.userdata["vad"] = silero.VAD.load()
 
+def before_llm_callback(agent, chat_ctx: llm.ChatContext):
+    logger.info(f"STT -> LLM: {chat_ctx.messages[-1].content}")
+    return None
+
+def before_tts_callback(agent, source: str):
+    logger.info(f"LLM -> TTS: {source}")
+    return source
 
 async def entrypoint(ctx: JobContext):
     initial_ctx = llm.ChatContext().append(
@@ -63,9 +70,9 @@ async def entrypoint(ctx: JobContext):
         # Minimum number of words to consider for interruption. Defaults to 0 as this may increase the latency depending on the STT.
         interrupt_min_words=0, 
         # callback to run before LLM is called, can be used to modify chat context
-        # before_llm_cb=None,
+        before_llm_cb=before_llm_callback,
         # callback to run before TTS is called, can be used to customize pronounciation
-        # before_tts_cb=None,  
+        before_tts_cb=before_tts_callback 
     )
 
     usage_collector = metrics.UsageCollector()
