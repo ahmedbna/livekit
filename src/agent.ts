@@ -2,9 +2,9 @@ import { voice } from '@livekit/agents';
 
 // Define a custom voice AI assistant by extending the base Agent class
 export class Assistant extends voice.Agent {
-  constructor(agentInstructions: string) {
+  constructor(agentInstructions?: string) {
     super({
-      instructions: agentInstructions,
+      instructions: agentInstructions ?? '',
 
       // To add tools, specify `tools` in the constructor.
       // Here's an example that adds a simple weather tool.

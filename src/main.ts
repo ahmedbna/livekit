@@ -21,12 +21,10 @@ export default defineAgent({
     proc.userData.vad = await silero.VAD.load();
   },
   entry: async (ctx: JobContext) => {
-    const metadata = JSON.parse(ctx.job.metadata);
-    const agentInstructions = metadata.agentInstructions;
-    const greetingInstructions = metadata.greetingInstructions;
-
-    console.log('agentInstructions:', agentInstructions)
-    console.log('greetingInstructions:', greetingInstructions)
+    console.log('CTX Job', ctx.job);
+    console.log('CTX Room:', ctx.room);
+    console.log('CTX Agent:', ctx.agent);
+    console.log('CTX Info:', ctx.info);
 
     // Create the session
     const session = new voice.AgentSession({
@@ -51,7 +49,7 @@ export default defineAgent({
 
     // Start the session with custom agentInstructions
     await session.start({
-      agent: new Assistant(agentInstructions),
+      agent: new Assistant('agentInstructions'),
       room: ctx.room,
       inputOptions: {
         noiseCancellation: BackgroundVoiceCancellation(),
@@ -60,9 +58,9 @@ export default defineAgent({
 
     // Connect to the room
     await ctx.connect();
-      
+
     const handle = session.generateReply({
-      instructions: greetingInstructions
+      instructions: 'greetingInstructions',
     });
 
     await handle.waitForPlayout();
