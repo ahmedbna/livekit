@@ -4,7 +4,6 @@ import {
   ServerOptions,
   cli,
   defineAgent,
-  metrics,
   voice,
 } from '@livekit/agents';
 import * as openai from '@livekit/agents-plugin-openai';
@@ -21,46 +20,46 @@ export default defineAgent({
     proc.userData.vad = await silero.VAD.load();
   },
   entry: async (ctx: JobContext) => {
-    console.log('CTX Job', ctx.job);
-    console.log('CTX Room:', ctx.room);
-    console.log('CTX Agent:', ctx.agent);
-    console.log('CTX Info:', ctx.info);
+    // Step 1: connect first
+    await ctx.connect();
 
-    // Create the session
+    // Step 2: wait for participant BEFORE starting session
+    // This works because connect() is already done
+    const participant = await ctx.waitForParticipant();
+
+    const attrs = participant.attributes ?? {};
+    console.log('✅ Participant Attributes:', JSON.stringify(attrs, null, 2));
+
+    // Step 3: Now use metadata to build instructions
+    const metadata = participant.metadata ?? '';
+    console.log('✅ Participant Metadata:', metadata);
+
+    const greetingInstructions = JSON.parse(metadata)?.greetingInstructions;
+    console.log('✅ greetingInstructions Metadata:', greetingInstructions);
+
+    const agentInstructions = JSON.parse(metadata)?.agentInstructions;
+    console.log('✅ agentInstructions Metadata:', agentInstructions);
+
+    // Step 4: Create session with the real instructions
     const session = new voice.AgentSession({
       llm: new openai.realtime.RealtimeModel({
         voice: 'marin',
+        // voice: 'coral',
+        // model: '',
       }),
     });
 
-    // // Metrics collection
-    // const usageCollector = new metrics.UsageCollector();
-    // session.on(voice.AgentSessionEventTypes.MetricsCollected, (ev) => {
-    //   metrics.logMetrics(ev.metrics);
-    //   usageCollector.collect(ev.metrics);
-    // });
-
-    // const logUsage = async () => {
-    //   const summary = usageCollector.getSummary();
-    //   console.log(`Usage: ${JSON.stringify(summary)}`);
-    // };
-
-    // ctx.addShutdownCallback(logUsage);
-
-    // Start the session with custom agentInstructions
     await session.start({
-      agent: new Assistant('agentInstructions'),
+      agent: new Assistant(agentInstructions),
       room: ctx.room,
       inputOptions: {
         noiseCancellation: BackgroundVoiceCancellation(),
       },
     });
 
-    // Connect to the room
-    await ctx.connect();
-
+    // Step 5: Greet
     const handle = session.generateReply({
-      instructions: 'greetingInstructions',
+      instructions: greetingInstructions,
     });
 
     await handle.waitForPlayout();
